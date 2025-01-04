@@ -15,6 +15,7 @@ let encryptionKey: string;
 export default class WindowsPlatform implements Platform {
 
   private HOST_FILE_PATH = 'C:\\Windows\\System32\\Drivers\\etc\\hosts';
+  private vi = this.getVector();
 
   /**
    * Windows is at least simple. Like macOS, most applications will delegate to
@@ -94,13 +95,21 @@ export default class WindowsPlatform implements Platform {
     write(filepath, encryptedContents);
   }
 
+  private getVector() {
+    return crypto.randomBytes(16).toString('hex').slice(0, 16);
+  }
+
+  private processKey(key: string): string {
+    return crypto.createHash('sha256').update(String(key)).digest('base64').substring(0, 32)
+  }
+
   private encrypt(text: string, key: string) {
-    let cipher = crypto.createCipher('aes256', new Buffer(key));
+    let cipher = crypto.createCipheriv('aes256', this.processKey(key), this.vi);
     return cipher.update(text, 'utf8', 'hex') + cipher.final('hex');
   }
 
   private decrypt(encrypted: string, key: string) {
-    let decipher = crypto.createDecipher('aes256', new Buffer(key));
+    let decipher = crypto.createDecipheriv('aes256', this.processKey(key), this.vi);
     return decipher.update(encrypted, 'hex', 'utf8') + decipher.final('utf8');
   }
 
